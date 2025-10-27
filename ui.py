@@ -14,47 +14,35 @@ from tkinter import (
     Y,
     messagebox,
 )
-from typing import Callable
 
-from scraper import Recipe
+from scraper import Recipe, processSite
+from whoosher import (
+    getAllRecipes,
+    getRecipesByCharacteristicsAndTitle,
+    getRecipesByDate,
+    getRecipesByTitleOrIntroduction,
+    writeRecipes,
+)
 
 
-def main_window(
-    load: Callable[[], None],
-    getTotalRecipes: Callable[[], int],
-    getAllRecipes: Callable[[], list[Recipe]],
-    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
-    getRecipesByDate: Callable[[str, str], list[Recipe]],
-    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
-) -> None:
+def main_window() -> None:
     root = Tk()
 
     mainMenu = Menu(root)
 
     # Data
     dataMenu = Menu(mainMenu, tearoff=0)
-    dataMenu.add_command(
-        label="Cargar", command=lambda: confirmLoad(load, getTotalRecipes)
-    )
+    dataMenu.add_command(label="Cargar", command=confirmLoad)
     dataMenu.add_command(label="Listar", command=lambda: listRecipes(getAllRecipes()))
     dataMenu.add_command(label="Salir", command=mainMenu.quit)
     mainMenu.add_cascade(label="Datos", menu=dataMenu)
 
     # Search
     searchMenu = Menu(mainMenu, tearoff=0)
+    searchMenu.add_command(label="Título o introducción", command=searchByTitleOrIntro)
+    searchMenu.add_command(label="Fecha", command=searchByDate)
     searchMenu.add_command(
-        label="Título o introducción",
-        command=lambda: searchByTitleOrIntro(getRecipesByTitleOrIntroduction),
-    )
-    searchMenu.add_command(
-        label="Fecha",
-        command=lambda: searchByDate(getRecipesByDate),
-    )
-    searchMenu.add_command(
-        label="Características y título",
-        command=lambda: searchByCharacteristicAndTitle(
-            getRecipesByCharacteristicsAndTitle
-        ),
+        label="Características y título", command=searchByCharacteristicAndTitle
     )
     mainMenu.add_cascade(label="Buscar", menu=searchMenu)
 
@@ -63,9 +51,7 @@ def main_window(
     root.mainloop()
 
 
-def searchByTitleOrIntro(
-    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
-) -> None:
+def searchByTitleOrIntro() -> None:
     top = Toplevel()
     top.title("Buscar por título o introducción")
     top.geometry("350x100")
@@ -83,9 +69,7 @@ def searchByTitleOrIntro(
     )
 
 
-def searchByDate(
-    getRecipesByDate: Callable[[str, str], list[Recipe]],
-) -> None:
+def searchByDate() -> None:
     top = Toplevel()
     top.title("Buscar por fecha")
     top.geometry("350x100")
@@ -107,9 +91,7 @@ def searchByDate(
     _ = secondDateEntry.bind("<Return>", search)
 
 
-def searchByCharacteristicAndTitle(
-    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
-) -> None:
+def searchByCharacteristicAndTitle() -> None:
     top = Toplevel()
     top.title("Buscar por características y título")
     top.geometry("350x100")
@@ -147,16 +129,13 @@ def listRecipes(activities: list[Recipe]) -> None:
     )
 
 
-def confirmLoad(
-    load: Callable[[], None], getTotalActivities: Callable[[], int]
-) -> None:
+def confirmLoad() -> None:
     answer = messagebox.askyesno(
         title="Confirmar",
         message="Estas seguro de que quieres cargar los datos?\nEsto puede tomar un rato.",
     )
     if answer:
-        load()
-    total = getTotalActivities()
-    _ = messagebox.showinfo(
-        "Resultado de la carga", f"Se han añadido un total de {total} recetas"
-    )
+        total = writeRecipes(processSite())
+        _ = messagebox.showinfo(
+            "Resultado de la carga", f"Se han añadido un total de {total} recetas"
+        )
