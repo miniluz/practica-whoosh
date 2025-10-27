@@ -1,37 +1,31 @@
 from tkinter import (
     BOTH,
-    BOTTOM,
     END,
     LEFT,
     RIGHT,
-    X,
-    Y,
-    Button,
     Entry,
     Label,
     Listbox,
     Menu,
     Scrollbar,
-    Spinbox,
     Tk,
     Toplevel,
+    X,
+    Y,
     messagebox,
 )
-
 from typing import Callable
-from datetime import date, datetime
-from database import Activity
+
+from database import Recipe
 
 
 def main_window(
     load: Callable[[], None],
-    getTotalActivities: Callable[[], int],
-    getAllActivities: Callable[[], list[Activity]],
-    getNextActivities: Callable[[], list[Activity]],
-    getMorningActivities: Callable[[], list[Activity]],
-    getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Activity]],
-    getActivitiesByDate: Callable[[date], list[Activity]],
+    getTotalRecipes: Callable[[], int],
+    getAllRecipes: Callable[[], list[Recipe]],
+    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
+    getRecipesByDate: Callable[[str, str], list[Recipe]],
+    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
 ) -> None:
     root = Tk()
 
@@ -40,35 +34,27 @@ def main_window(
     # Data
     dataMenu = Menu(mainMenu, tearoff=0)
     dataMenu.add_command(
-        label="Cargar", command=lambda: confirmLoad(load, getTotalActivities)
+        label="Cargar", command=lambda: confirmLoad(load, getTotalRecipes)
     )
+    dataMenu.add_command(label="Listar", command=lambda: listRecipes(getAllRecipes()))
     dataMenu.add_command(label="Salir", command=mainMenu.quit)
     mainMenu.add_cascade(label="Datos", menu=dataMenu)
-
-    # List
-    listMenu = Menu(mainMenu, tearoff=0)
-    listMenu.add_command(
-        label="Todas las actividades",
-        command=lambda: listActivities(getAllActivities()),
-    )
-    listMenu.add_command(
-        label="Próximas actividades",
-        command=lambda: listActivities(getNextActivities()),
-    )
-    mainMenu.add_cascade(label="Listar", menu=listMenu)
 
     # Search
     searchMenu = Menu(mainMenu, tearoff=0)
     searchMenu.add_command(
-        label="Actividades por lugar",
-        command=lambda: searchByPlace(getPlaces, getActivitiesByPlace),
+        label="Título o introducción",
+        command=lambda: searchByTitleOrIntro(getRecipesByTitleOrIntroduction),
     )
     searchMenu.add_command(
-        label="Actividades por fecha", command=lambda: searchByDate(getActivitiesByDate)
+        label="Fecha",
+        command=lambda: searchByDate(getRecipesByDate),
     )
     searchMenu.add_command(
-        label="Actividades matinales",
-        command=lambda: listActivities(getMorningActivities()),
+        label="Características y título",
+        command=lambda: searchByCharacteristicAndTitle(
+            getRecipesByCharacteristicsAndTitle
+        ),
     )
     mainMenu.add_cascade(label="Buscar", menu=searchMenu)
 
@@ -77,53 +63,71 @@ def main_window(
     root.mainloop()
 
 
-def searchByPlace(
-    getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Activity]],
-) -> None:
-    places = getPlaces()
-    searchPicker(
-        "lugar", list(places), lambda place: listActivities(getActivitiesByPlace(place))
-    )
-
-
-def searchByDate(
-    getByDate: Callable[[date], list[Activity]],
+def searchByTitleOrIntro(
+    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
 ) -> None:
     top = Toplevel()
-    top.title("Filtrar por fecha")
+    top.title("Buscar por título o introducción")
     top.geometry("350x100")
-    L1 = Label(top, text="Introduzca la fecha formato DD/MM/YYYY")
+    L1 = Label(top, text="Introduzca una frase con la que buscar:")
     L1.pack(side=LEFT)
     textEntry = Entry(top)
     textEntry.pack(fill=X, side=RIGHT)
     _ = textEntry.bind(
         "<Return>",
-        lambda _: listActivities(
-            getByDate(
-                datetime(
-                    int(textEntry.get().split("/")[2]),
-                    int(textEntry.get().split("/")[1]),
-                    int(textEntry.get().split("/")[0]),
-                ).date()
+        lambda _: listRecipes(
+            getRecipesByTitleOrIntroduction(
+                textEntry.get(),
             )
         ),
     )
 
 
-def searchPicker(
-    name: str, options: list[str], callback: Callable[[str], None]
+def searchByDate(
+    getRecipesByDate: Callable[[str, str], list[Recipe]],
 ) -> None:
-    topLevel = Toplevel()
+    top = Toplevel()
+    top.title("Buscar por fecha")
+    top.geometry("350x100")
+    L1 = Label(top, text="Introduzca la un rango de fechas en formato DD/MM/YYYY")
+    L1.pack(side=LEFT)
+    firstDateEntry = Entry(top)
+    firstDateEntry.pack(fill=X, side=RIGHT)
+    secondDateEntry = Entry(top)
+    secondDateEntry.pack(fill=X, side=RIGHT)
 
-    label = Label(topLevel, text=f"Escoge {name}")
-    label.pack(side=LEFT)
-    picker = Spinbox(topLevel, values=options, state="readonly")
-    _ = picker.bind("<Return>", lambda event: callback(str(picker.get())))
-    picker.pack(side=LEFT)
+    search = lambda _: listRecipes(
+        getRecipesByDate(
+            firstDateEntry.get(),
+            secondDateEntry.get(),
+        )
+    )
+
+    _ = firstDateEntry.bind("<Return>", search)
+    _ = secondDateEntry.bind("<Return>", search)
 
 
-def listActivities(activities: list[Activity]) -> None:
+def searchByCharacteristicAndTitle(
+    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
+) -> None:
+    top = Toplevel()
+    top.title("Buscar por características y título")
+    top.geometry("350x100")
+    L1 = Label(top, text="Introduzca una frase con la que buscar:")
+    L1.pack(side=LEFT)
+    textEntry = Entry(top)
+    textEntry.pack(fill=X, side=RIGHT)
+    _ = textEntry.bind(
+        "<Return>",
+        lambda _: listRecipes(
+            getRecipesByCharacteristicsAndTitle(
+                textEntry.get(),
+            ),
+        ),
+    )
+
+
+def listRecipes(activities: list[Recipe]) -> None:
     topLevel = Toplevel()
     scrollbar = Scrollbar(topLevel)
     scrollbar.pack(side=RIGHT, fill=Y)
@@ -154,5 +158,5 @@ def confirmLoad(
         load()
     total = getTotalActivities()
     _ = messagebox.showinfo(
-        "Resultado de la carga", f"Se han añadido un total de {total} actividades"
+        "Resultado de la carga", f"Se han añadido un total de {total} recetas"
     )
