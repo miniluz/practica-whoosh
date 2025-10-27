@@ -21,13 +21,11 @@ from scraper import Recipe
 
 def main_window(
     load: Callable[[], None],
-    getTotalActivities: Callable[[], int],
-    getAllActivities: Callable[[], list[Recipe]],
-    getNextActivities: Callable[[], list[Recipe]],
-    getMorningActivities: Callable[[], list[Recipe]],
-    getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Recipe]],
-    getActivitiesByDate: Callable[[date], list[Recipe]],
+    getTotalRecipes: Callable[[], int],
+    getAllRecipes: Callable[[], list[Recipe]],
+    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
+    getRecipesByDate: Callable[[str, str], list[Recipe]],
+    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
 ) -> None:
     root = Tk()
 
@@ -65,9 +63,8 @@ def main_window(
     root.mainloop()
 
 
-def searchByPlace(
-    getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Recipe]],
+def searchByTitleOrIntro(
+    getRecipesByTitleOrIntroduction: Callable[[str], list[Recipe]],
 ) -> None:
     top = Toplevel()
     top.title("Buscar por título o introducción")
@@ -87,7 +84,31 @@ def searchByPlace(
 
 
 def searchByDate(
-    getByDate: Callable[[date], list[Recipe]],
+    getRecipesByDate: Callable[[str, str], list[Recipe]],
+) -> None:
+    top = Toplevel()
+    top.title("Buscar por fecha")
+    top.geometry("350x100")
+    L1 = Label(top, text="Introduzca la un rango de fechas en formato DD/MM/YYYY")
+    L1.pack(side=LEFT)
+    firstDateEntry = Entry(top)
+    firstDateEntry.pack(fill=X, side=RIGHT)
+    secondDateEntry = Entry(top)
+    secondDateEntry.pack(fill=X, side=RIGHT)
+
+    search = lambda _: listRecipes(
+        getRecipesByDate(
+            firstDateEntry.get(),
+            secondDateEntry.get(),
+        )
+    )
+
+    _ = firstDateEntry.bind("<Return>", search)
+    _ = secondDateEntry.bind("<Return>", search)
+
+
+def searchByCharacteristicAndTitle(
+    getRecipesByCharacteristicsAndTitle: Callable[[str], list[Recipe]],
 ) -> None:
     top = Toplevel()
     top.title("Buscar por características y título")
@@ -106,19 +127,7 @@ def searchByDate(
     )
 
 
-def searchPicker(
-    name: str, options: list[str], callback: Callable[[str], None]
-) -> None:
-    topLevel = Toplevel()
-
-    label = Label(topLevel, text=f"Escoge {name}")
-    label.pack(side=LEFT)
-    picker = Spinbox(topLevel, values=options, state="readonly")
-    _ = picker.bind("<Return>", lambda event: callback(str(picker.get())))
-    picker.pack(side=LEFT)
-
-
-def listActivities(activities: list[Recipe]) -> None:
+def listRecipes(activities: list[Recipe]) -> None:
     topLevel = Toplevel()
     scrollbar = Scrollbar(topLevel)
     scrollbar.pack(side=RIGHT, fill=Y)
