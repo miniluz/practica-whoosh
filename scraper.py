@@ -15,10 +15,10 @@ if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
 
 class Recipe(NamedTuple):
     title: str
-    numDiners: int
+    numDiners: int | None
     author: str 
     updateDate: datetime
-    additionalCharacteristics: list[str]
+    additionalCharacteristics: str
     introduction: str
 
 
@@ -27,7 +27,7 @@ def processSite() -> list[Recipe]:
     siteHTML = cast(str, urllib.request.urlopen(url))
     siteSoup = BeautifulSoup(siteHTML, "lxml")
 
-    recipesHtml = siteSoup.find("div", id="content-core").find_all("article")
+    recipesHtml = siteSoup.find_all("div", class_="resultado link")
 
     recipes: list[Recipe] = [
         parseElement(recipeHtml) for recipeHtml in recipesHtml
@@ -39,50 +39,36 @@ def processSite() -> list[Recipe]:
 
 
 def parseElement(recipeHtml: Tag) -> Recipe:
+    url = recipeHtml.find("a").get("href")
+    recipeHtml = cast(str, urllib.request.urlopen(url))
+    recipeSoup = BeautifulSoup(recipeHtml, "lxml") 
 
-    titleTag = recipeHtml.find("h2", class_="tileHeadline")
-
-    title = titleTag.text.strip()
-
-    link = titleTag.find("a").get("href")
-
-    try:
-        place = extractPlace(link)
-    except:
-        place = None
-    startDate = datetime.fromisoformat(
-        recipeHtml.find("abbr", class_="dtstart").get("title")
-    )
+    title = recipeSoup.find("h1").text
 
     try:
-        endDate = datetime.fromisoformat(
-            recipeHtml.find("abbr", class_="dtend").get("title")
-        )
+        numDinners = int(recipeSoup.find("span", class_="property comensales").text.split(" ")[0])
     except:
-        endDate = None
+        numDinners= None
+    author = recipeSoup.find("div", class_="nombre_autor").a.text
 
-    hasStartTime = startDate.time() != time(0, 0, 0)
+    import locale
+    locale.setlocale(locale.LC_TIME, "es_ES")
+    updateDate = datetime.strptime( recipeSoup.find("span", class_="date_publish").text.replace("Actualizado: ",""), "%d %B %Y")
+    aditionalCharacteristics = recipeSoup.find("div", class_="properties inline").text
+    introduction= recipeSoup.find("div", class_="intro").p.text
 
-    try:
-        description = recipeHtml.find("p", class_="description").text.strip()
-    except:
-        description = None
-    pass
+
 
     return Recipe(
-        title=title,
-        description=description,
-        place=place,
-        start=startDate,
-        startHasTime=hasStartTime,
-        end=endDate,
+        title= title,
+        numDiners= numDinners,
+        author= author ,
+        updateDate= updateDate,
+        additionalCharacteristics= aditionalCharacteristics,
+        introduction= introduction
     )
 
 
-def extractPlace(link):
-    siteHTML = cast(str, urllib.request.urlopen(link))
-    siteSoup = BeautifulSoup(siteHTML, "lxml")
-    return siteSoup.find("span", itemprop="location").text
 
 
 if __name__ == "__main__":
