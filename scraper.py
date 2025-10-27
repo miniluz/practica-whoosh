@@ -13,28 +13,34 @@ if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
 ):
     ssl._create_default_https_context = ssl._create_unverified_context
 
-from database import Activity
+class Recipe(NamedTuple):
+    title: str
+    numDiners: int
+    author: str 
+    updateDate: datetime
+    additionalCharacteristics: list[str]
+    introduction: str
 
 
-def processSite() -> list[Activity]:
-    url = "https://www.sevilla.org/ayuntamiento/alcaldia/comunicacion/calendario/agenda-actividades/"
+def processSite() -> list[Recipe]:
+    url = "https://www.recetasgratis.net/Recetas-de-Aperitivos-tapas-listado_receta-1_1.html"
     siteHTML = cast(str, urllib.request.urlopen(url))
     siteSoup = BeautifulSoup(siteHTML, "lxml")
 
-    activitiesHtml = siteSoup.find("div", id="content-core").find_all("article")
+    recipesHtml = siteSoup.find("div", id="content-core").find_all("article")
 
-    activities: list[Activity] = [
-        parseActivity(activityHtml) for activityHtml in activitiesHtml
+    recipes: list[Recipe] = [
+        parseElement(recipeHtml) for recipeHtml in recipesHtml
     ]
 
     # print(activities[0])
 
-    return activities
+    return recipes
 
 
-def parseActivity(activityHtml: Tag) -> Activity:
+def parseElement(recipeHtml: Tag) -> Recipe:
 
-    titleTag = activityHtml.find("h2", class_="tileHeadline")
+    titleTag = recipeHtml.find("h2", class_="tileHeadline")
 
     title = titleTag.text.strip()
 
@@ -45,12 +51,12 @@ def parseActivity(activityHtml: Tag) -> Activity:
     except:
         place = None
     startDate = datetime.fromisoformat(
-        activityHtml.find("abbr", class_="dtstart").get("title")
+        recipeHtml.find("abbr", class_="dtstart").get("title")
     )
 
     try:
         endDate = datetime.fromisoformat(
-            activityHtml.find("abbr", class_="dtend").get("title")
+            recipeHtml.find("abbr", class_="dtend").get("title")
         )
     except:
         endDate = None
@@ -58,12 +64,12 @@ def parseActivity(activityHtml: Tag) -> Activity:
     hasStartTime = startDate.time() != time(0, 0, 0)
 
     try:
-        description = activityHtml.find("p", class_="description").text.strip()
+        description = recipeHtml.find("p", class_="description").text.strip()
     except:
         description = None
     pass
 
-    return Activity(
+    return Recipe(
         title=title,
         description=description,
         place=place,

@@ -20,18 +20,18 @@ from tkinter import (
 
 from typing import Callable
 from datetime import date, datetime
-from database import Activity
+from database import Recipe
 
 
 def main_window(
     load: Callable[[], None],
     getTotalActivities: Callable[[], int],
-    getAllActivities: Callable[[], list[Activity]],
-    getNextActivities: Callable[[], list[Activity]],
-    getMorningActivities: Callable[[], list[Activity]],
+    getAllActivities: Callable[[], list[Recipe]],
+    getNextActivities: Callable[[], list[Recipe]],
+    getMorningActivities: Callable[[], list[Recipe]],
     getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Activity]],
-    getActivitiesByDate: Callable[[date], list[Activity]],
+    getActivitiesByPlace: Callable[[str], list[Recipe]],
+    getActivitiesByDate: Callable[[date], list[Recipe]],
 ) -> None:
     root = Tk()
 
@@ -79,7 +79,7 @@ def main_window(
 
 def searchByPlace(
     getPlaces: Callable[[], set[str]],
-    getActivitiesByPlace: Callable[[str], list[Activity]],
+    getActivitiesByPlace: Callable[[str], list[Recipe]],
 ) -> None:
     places = getPlaces()
     searchPicker(
@@ -88,7 +88,7 @@ def searchByPlace(
 
 
 def searchByDate(
-    getByDate: Callable[[date], list[Activity]],
+    getByDate: Callable[[date], list[Recipe]],
 ) -> None:
     top = Toplevel()
     top.title("Filtrar por fecha")
@@ -123,7 +123,7 @@ def searchPicker(
     picker.pack(side=LEFT)
 
 
-def listActivities(activities: list[Activity]) -> None:
+def listActivities(activities: list[Recipe]) -> None:
     topLevel = Toplevel()
     scrollbar = Scrollbar(topLevel)
     scrollbar.pack(side=RIGHT, fill=Y)
