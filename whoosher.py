@@ -1,5 +1,6 @@
 import os
 import shutil
+from datetime import datetime
 
 from whoosh.fields import DATETIME, KEYWORD, STORED, TEXT, Schema
 from whoosh.index import create_in, open_dir
@@ -41,13 +42,22 @@ def writeRecipes(recipes: list[Recipe]) -> int:
 
 
 def resultToRecipe(result) -> Recipe:
+    title: str = result["title"]
+    try:
+        numDiners: int | None = result["numDinner"]
+    except:
+        numDiners = None
+    author: str = result["author"]
+    additionalCharacteristics: str = result["additionalCharacteristics"]
+    updateDate: datetime = result["updateDate"]
+    introduction: str = result["introduction"]
     return Recipe(
-        title=result.row["title"],
-        numDiners=result.row["numDinner"],
-        author=result.row["author"],
-        additionalCharacteristics=result.row["additionalCharacteristics"],
-        updateDate=result.row["updateDate"],
-        introduction=result.row["introduction"],
+        title=title,
+        numDiners=numDiners,
+        author=author,
+        additionalCharacteristics=additionalCharacteristics,
+        updateDate=updateDate,
+        introduction=introduction,
     )
 
 
@@ -57,7 +67,9 @@ def getAllRecipes() -> list[Recipe]:
 
 
 def getRecipesByTitleOrIntroduction(phrase: str) -> list[Recipe]:
-    return []
+    with open_dir("Index").searcher() as searcher:
+        query = QueryParser("")
+        return list(map(resultToRecipe, searcher.documents()))
 
 
 def getRecipesByDate(startDate: str, endDate) -> list[Recipe]:

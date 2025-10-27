@@ -1,22 +1,21 @@
-from typing import cast
-from bs4 import BeautifulSoup, Tag
+import os
+import ssl
 import urllib.request
-import lxml  # pyright: ignore[reportUnusedImport, reportMissingTypeStubs]
-from typing import NamedTuple
+from datetime import datetime
+from typing import NamedTuple, cast
 
-from datetime import datetime, time
-
-import os, ssl
+from bs4 import BeautifulSoup, Tag
 
 if not os.environ.get("PYTHONHTTPSVERIFY", "") and getattr(
     ssl, "_create_unverified_context", None
 ):
     ssl._create_default_https_context = ssl._create_unverified_context
 
+
 class Recipe(NamedTuple):
     title: str
     numDiners: int | None
-    author: str 
+    author: str
     updateDate: datetime
     additionalCharacteristics: str
     introduction: str
@@ -29,9 +28,7 @@ def processSite() -> list[Recipe]:
 
     recipesHtml = siteSoup.find_all("div", class_="resultado link")
 
-    recipes: list[Recipe] = [
-        parseElement(recipeHtml) for recipeHtml in recipesHtml
-    ]
+    recipes: list[Recipe] = [parseElement(recipeHtml) for recipeHtml in recipesHtml]
 
     # print(activities[0])
 
@@ -41,34 +38,38 @@ def processSite() -> list[Recipe]:
 def parseElement(recipeHtml: Tag) -> Recipe:
     url = recipeHtml.find("a").get("href")
     recipeHtml = cast(str, urllib.request.urlopen(url))
-    recipeSoup = BeautifulSoup(recipeHtml, "lxml") 
+    recipeSoup = BeautifulSoup(recipeHtml, "lxml")
 
     title = recipeSoup.find("h1").text
 
     try:
-        numDinners = int(recipeSoup.find("span", class_="property comensales").text.split(" ")[0])
+        numDinners = int(
+            recipeSoup.find("span", class_="property comensales").text.split(" ")[0]
+        )
     except:
-        numDinners= None
+        numDinners = None
     author = recipeSoup.find("div", class_="nombre_autor").a.text
 
     import locale
-    locale.setlocale(locale.LC_TIME, "es_ES")
-    updateDate = datetime.strptime( recipeSoup.find("span", class_="date_publish").text.replace("Actualizado: ",""), "%d %B %Y")
+
+    locale.setlocale(locale.LC_TIME, "es_ES.UTF8")
+    updateDate = datetime.strptime(
+        recipeSoup.find("span", class_="date_publish").text.replace(
+            "Actualizado: ", ""
+        ),
+        "%d %B %Y",
+    )
     aditionalCharacteristics = recipeSoup.find("div", class_="properties inline").text
-    introduction= recipeSoup.find("div", class_="intro").p.text
-
-
+    introduction = recipeSoup.find("div", class_="intro").p.text
 
     return Recipe(
-        title= title,
-        numDiners= numDinners,
-        author= author ,
-        updateDate= updateDate,
-        additionalCharacteristics= aditionalCharacteristics,
-        introduction= introduction
+        title=title,
+        numDiners=numDinners,
+        author=author,
+        updateDate=updateDate,
+        additionalCharacteristics=aditionalCharacteristics,
+        introduction=introduction,
     )
-
-
 
 
 if __name__ == "__main__":
