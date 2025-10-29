@@ -1,23 +1,24 @@
 import os
 import shutil
-from datetime import datetime
+from datetime import date, datetime
 
 from whoosh.fields import DATETIME, KEYWORD, STORED, TEXT, Schema
 from whoosh.index import create_in, open_dir
+from whoosh.qparser import MultifieldParser, QueryParser
 
 from scraper import Recipe
 
+schema = Schema(
+    title=TEXT(stored=True),
+    numDinners=STORED,
+    author=STORED,
+    additionalCharacteristics=KEYWORD(stored=True, lowercase=True, commas=True),
+    updateDate=DATETIME(stored=True),
+    introduction=TEXT(stored=True),
+)
+
 
 def writeRecipes(recipes: list[Recipe]) -> int:
-    schema = Schema(
-        title=TEXT(stored=True),
-        numDinners=STORED,
-        author=STORED,
-        additionalCharacteristics=KEYWORD(stored=True, lowercase=True, commas=True),
-        updateDate=DATETIME(stored=True),
-        introduction=TEXT(stored=True),
-    )
-
     if os.path.exists("Index"):
         shutil.rmtree("Index")
     os.mkdir("Index")
@@ -68,13 +69,43 @@ def getAllRecipes() -> list[Recipe]:
 
 def getRecipesByTitleOrIntroduction(phrase: str) -> list[Recipe]:
     with open_dir("Index").searcher() as searcher:
-        query = QueryParser("")
-        return list(map(resultToRecipe, searcher.documents()))
+        query_parser = MultifieldParser(["title", "introduction"], schema=schema)
+        query = query_parser.parse(phrase)
+        results = searcher.search(query, limit=None)
+        return list(map(resultToRecipe, results))
 
 
-def getRecipesByDate(startDate: str, endDate) -> list[Recipe]:
-    return []
+def getRecipesByDate(startDate: date, endDate: date) -> list[Recipe]:
+    with open_dir("Index").searcher() as searcher:
+        query_parser = QueryParser("updateDate", schema=schema)
+        query_string = (
+            f"[{startDate.strftime('%Y%m%d')} to {endDate.strftime('%Y%m%d')}]"
+        )
+        print(query_string)
+        query = query_parser.parse(query_string)
+        print(query)
+        results = searcher.search(query, limit=None)
+        print(results)
+        return list(map(resultToRecipe, results))
 
 
-def getRecipesByCharacteristicsAndTitle(phrase: str) -> list[Recipe]:
-    return []
+def getCharacteristics() -> list[str]:
+    recipes = getAllRecipes()
+    characteristics = [
+        char
+        for recipe in recipes
+        for char in recipe.additionalCharacteristics.split(",")
+    ]
+    return list(set(characteristics))
+
+
+def getRecipesByCharacteristicsAndTitle(
+    characteristic: str, phrase: str
+) -> list[Recipe]:
+    with open_dir("Index").searcher() as searcher:
+        query_parser = QueryParser("title", schema=schema)
+        query = query_parser.parse(
+            f"'{phrase}' AND additionalCharacteristics:'{characteristic}'",
+        )
+        results = searcher.search(query, limit=None)
+        return list(map(resultToRecipe, results))

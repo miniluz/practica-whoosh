@@ -59,18 +59,26 @@ def parseElement(recipeHtml: Tag) -> Recipe:
         ),
         "%d %B %Y",
     )
-    aditionalCharacteristics = recipeSoup.find("div", class_="properties inline").text
+    additionalCharacteristics = recipeSoup.find("div", class_="properties inline").text
+    additionalCharacteristics = ",".join(
+        [
+            char.strip()
+            for char in additionalCharacteristics.replace(
+                "Características adicionales:\n", ""
+            ).split(",")
+        ]
+    )
     introduction = recipeSoup.find("div", class_="intro").p.text
 
     return Recipe(
-        title=title,
+        title=title.strip(),
         numDiners=numDinners,
-        author=author,
+        author=author.strip(),
         updateDate=updateDate,
-        additionalCharacteristics=aditionalCharacteristics,
-        introduction=introduction,
+        additionalCharacteristics=additionalCharacteristics,
+        introduction=introduction.strip(),
     )
 
 
 if __name__ == "__main__":
-    processSite()
+    print(processSite())

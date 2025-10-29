@@ -1,13 +1,16 @@
+from datetime import datetime
 from tkinter import (
     BOTH,
     END,
     LEFT,
     RIGHT,
+    TOP,
     Entry,
     Label,
     Listbox,
     Menu,
     Scrollbar,
+    Spinbox,
     Tk,
     Toplevel,
     X,
@@ -18,6 +21,7 @@ from tkinter import (
 from scraper import Recipe, processSite
 from whoosher import (
     getAllRecipes,
+    getCharacteristics,
     getRecipesByCharacteristicsAndTitle,
     getRecipesByDate,
     getRecipesByTitleOrIntroduction,
@@ -73,17 +77,19 @@ def searchByDate() -> None:
     top = Toplevel()
     top.title("Buscar por fecha")
     top.geometry("350x100")
-    L1 = Label(top, text="Introduzca la un rango de fechas en formato DD/MM/YYYY")
-    L1.pack(side=LEFT)
+    dateRangeLabel = Label(
+        top, text="Introduzca la un rango de fechas en formato DD/MM/YYYY"
+    )
+    dateRangeLabel.pack(side=TOP)
     firstDateEntry = Entry(top)
-    firstDateEntry.pack(fill=X, side=RIGHT)
+    firstDateEntry.pack(fill=X, side=TOP)
     secondDateEntry = Entry(top)
-    secondDateEntry.pack(fill=X, side=RIGHT)
+    secondDateEntry.pack(fill=X, side=TOP)
 
     search = lambda _: listRecipes(
         getRecipesByDate(
-            firstDateEntry.get(),
-            secondDateEntry.get(),
+            datetime.strptime(firstDateEntry.get(), "%d/%m/%Y").date(),
+            datetime.strptime(secondDateEntry.get(), "%d/%m/%Y").date(),
         )
     )
 
@@ -92,21 +98,30 @@ def searchByDate() -> None:
 
 
 def searchByCharacteristicAndTitle() -> None:
+    characteristics = getCharacteristics()
+
     top = Toplevel()
     top.title("Buscar por características y título")
     top.geometry("350x100")
-    L1 = Label(top, text="Introduzca una frase con la que buscar:")
-    L1.pack(side=LEFT)
-    textEntry = Entry(top)
-    textEntry.pack(fill=X, side=RIGHT)
-    _ = textEntry.bind(
-        "<Return>",
-        lambda _: listRecipes(
-            getRecipesByCharacteristicsAndTitle(
-                textEntry.get(),
-            ),
-        ),
+
+    characteristicsLabel = Label(top, text="Pick a characteristsic")
+    characteristicsLabel.pack(side=TOP)
+    characteristicPicker = Spinbox(top, values=characteristics, state="readonly")
+    characteristicPicker.pack(side=TOP)
+
+    titleLabel = Label(top, text="Introduzca una frase con la que buscar en el título:")
+    titleLabel.pack(side=TOP)
+    titleEntry = Entry(top)
+    titleEntry.pack(fill=X, side=TOP)
+
+    search = lambda _: listRecipes(
+        getRecipesByCharacteristicsAndTitle(
+            characteristicPicker.get(), titleEntry.get()
+        )
     )
+
+    _ = titleEntry.bind("<Return>", search)
+    _ = characteristicPicker.bind("<Return>", search)
 
 
 def listRecipes(activities: list[Recipe]) -> None:
